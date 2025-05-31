@@ -74,3 +74,17 @@ python login.py
 - 📑 **Detalles de compras:** Consulta y gestión de los productos adquiridos en cada compra, permitiendo ver información específica de cada transacción de compra.
 - 🏷️ **Gestión de categorías:** Organización y clasificación de artículos para facilitar su búsqueda y control.
 - 🏷️ **Gestión de marcas:** Organización y clasificación de artículos por marca para facilitar su búsqueda y control.
+
+## Instalar los pip necesarios
+
+pip install colorama==0.4.6
+pip install mysql-connector-python==8.0.33
+pip install numpy==2.2.5
+pip install opencv-python==4.11.0.86
+pip install pillow==11.2.1
+pip install protobuf==3.20.3
+pip install PyQt6==6.9.0
+pip install PyQt6-Qt6==6.9.0
+pip install PyQt6_sip==13.10.0
+pip install pyzbar==0.1.9
+pip install qrcode==8.2
