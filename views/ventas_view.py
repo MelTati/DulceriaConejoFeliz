@@ -87,20 +87,20 @@ class VentanaVentas(QWidget):
             self.tabla.setItem(fila, 1, QTableWidgetItem(str(venta['fecha_venta'])))
             self.tabla.setItem(fila, 2, QTableWidgetItem(venta['nombre_usuario']))
             self.tabla.setItem(fila, 3, QTableWidgetItem(venta['nombre_cliente']))
-            self.tabla.setItem(fila, 4, QTableWidgetItem(f"${venta['total']:.2f}"))
+            self.tabla.setItem(fila, 4, QTableWidgetItem(f"${venta['total'] if venta['total'] is not None else 0:.2f}"))
 
     def seleccionar_fila(self, fila, _):
-            self.input_fecha.setDate(QDate.fromString(self.tabla.item(fila, 1).text(), "yyyy-MM-dd"))
-            usuario_texto = self.tabla.item(fila, 2).text().split(" (")[0]
-            cliente_texto = self.tabla.item(fila, 3).text().split(" (")[0]
+        self.input_fecha.setDate(QDate.fromString(self.tabla.item(fila, 1).text(), "yyyy-MM-dd"))
+        usuario_texto = self.tabla.item(fila, 2).text().split(" (")[0]
+        cliente_texto = self.tabla.item(fila, 3).text().split(" (")[0]
 
-            index_usuario = self.combo_usuarios.findText(usuario_texto, Qt.MatchStartsWith)
-            index_cliente = self.combo_clientes.findText(cliente_texto, Qt.MatchStartsWith)
+        index_usuario = self.combo_usuarios.findText(usuario_texto, Qt.MatchFlag.MatchStartsWith)
+        index_cliente = self.combo_clientes.findText(cliente_texto, Qt.MatchFlag.MatchStartsWith)
 
-            if index_usuario != -1:
-                self.combo_usuarios.setCurrentIndex(index_usuario)
-            if index_cliente != -1:
-                self.combo_clientes.setCurrentIndex(index_cliente)
+        if index_usuario != -1:
+            self.combo_usuarios.setCurrentIndex(index_usuario)
+        if index_cliente != -1:
+            self.combo_clientes.setCurrentIndex(index_cliente)
 
     def agregar_venta(self):
         try:
@@ -151,7 +151,13 @@ class VentanaVentas(QWidget):
             QMessageBox.warning(self, "Advertencia", "Seleccione una venta para ver sus detalles.")
             return
 
-        venta_id = int(self.tabla.item(fila_seleccionada, 0).text())
+        # Validar que la celda no sea None y que el texto sea un número
+        item_id = self.tabla.item(fila_seleccionada, 0)
+        if item_id is None or not item_id.text().isdigit():
+            QMessageBox.warning(self, "Advertencia", "No se pudo obtener el ID de la venta seleccionada.")
+            return
+
+        venta_id = int(item_id.text())
 
         if hasattr(self, 'detalles_ventas'):
             self.detalles_ventas.close()
@@ -170,5 +176,6 @@ class VentanaVentas(QWidget):
                     self.tabla.setItem(fila, 1, QTableWidgetItem(str(venta['fecha_venta'])))
                     self.tabla.setItem(fila, 2, QTableWidgetItem(venta['nombre_usuario']))
                     self.tabla.setItem(fila, 3, QTableWidgetItem(venta['nombre_cliente']))
-                    self.tabla.setItem(fila, 4, QTableWidgetItem(f"${venta['total']:.2f}"))
+                    self.tabla.setItem(fila, 4, QTableWidgetItem(f"${venta['total'] if venta['total'] is not None else 0:.2f}"))
                 break
+                

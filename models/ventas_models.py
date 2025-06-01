@@ -83,6 +83,19 @@ class VentasModel:
             cursor.close()
             conexion.close()
 
+    #Función interna para actualizar el total en la tabla ventas
+    def _actualizar_total_en_ventas(self, id_venta, total):
+        try:
+            conexion = crear_conexion()
+            cursor = conexion.cursor()
+            cursor.execute("""
+                UPDATE ventas SET total = %s WHERE id_ventas = %s
+            """, (total, id_venta))
+            conexion.commit()
+        finally:
+            cursor.close()
+            conexion.close()
+
     def obtener_total_venta(self, id_venta):
         try:
             conexion = crear_conexion()
@@ -92,25 +105,28 @@ class VentasModel:
                 FROM detalles_ventas dv
                 WHERE dv.id_ventas = %s
             """, (id_venta,))
-            return cursor.fetchone()['total']
+            total = cursor.fetchone()['total']
+            # Actualiza el total en la tabla ventas
+            self._actualizar_total_en_ventas(id_venta, total)
+            return total
         finally:
             cursor.close()
             conexion.close()
 
     def obtener_venta_por_id(self, id_venta):
         try:
+            # Primero actualiza el total antes de consultar la venta
+            total = self.obtener_total_venta(id_venta)
             conexion = crear_conexion()
             cursor = conexion.cursor(dictionary=True)
             cursor.execute("""
                 SELECT v.id_ventas, v.fecha_venta,
                        u.nombre_usuario, c.nombre AS nombre_cliente,
-                       IFNULL(SUM(dv.subtotal), 0) AS total
+                       v.total
                 FROM ventas v
                 JOIN usuarios u ON v.id_usuario = u.id_usuario
                 JOIN cliente c ON v.id_cliente = c.id_cliente
-                LEFT JOIN detalles_ventas dv ON v.id_ventas = dv.id_ventas
                 WHERE v.id_ventas = %s
-                GROUP BY v.id_ventas
             """, (id_venta,))
             return cursor.fetchone()
         finally:
