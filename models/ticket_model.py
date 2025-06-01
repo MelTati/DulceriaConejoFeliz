@@ -14,7 +14,9 @@ class TicketModel:
                     v.id_ventas,
                     v.fecha_venta,
                     u.nombre_usuario AS nombre_usuario,
-                    c.nombre AS nombre_cliente
+                    c.nombre AS nombre_cliente,
+                    t.cantidad_pagada,
+                    t.cambio
                 FROM ticket t
                 JOIN modo_pago m ON t.id_modo_pago = m.id_modo_pago
                 JOIN ventas v ON t.id_ventas = v.id_ventas
@@ -44,27 +46,56 @@ class TicketModel:
         except Exception as e:
             raise e
 
-    def crear_ticket(self, id_ticket, id_modo_pago, id_ventas):
+    def crear_ticket(self, id_ticket, id_modo_pago, id_ventas, cantidad_pagada=None):
         try:
             self.cursor.execute("""
-                INSERT INTO ticket (id_ticket, id_modo_pago, id_ventas)
-                VALUES (%s, %s, %s)
-            """, (id_ticket, id_modo_pago, id_ventas))
+                INSERT INTO ticket (id_ticket, id_modo_pago, id_ventas, cantidad_pagada)
+                VALUES (%s, %s, %s, %s)
+            """, (id_ticket, id_modo_pago, id_ventas, cantidad_pagada))
             self.conexion.commit()
+            # Actualiza el cambio automáticamente después de crear el ticket
+            self.actualizar_cambio(id_ticket)
             return True
         except Exception as e:
             self.conexion.rollback()
             raise e
 
-    def actualizar_ticket(self, id_ticket, id_modo_pago, id_ventas):
+    def actualizar_ticket(self, id_ticket, id_modo_pago, id_ventas, cantidad_pagada=None):
         try:
             self.cursor.execute("""
                 UPDATE ticket
-                SET id_modo_pago=%s, id_ventas=%s
+                SET id_modo_pago=%s, id_ventas=%s, cantidad_pagada=%s
                 WHERE id_ticket=%s
-            """, (id_modo_pago, id_ventas, id_ticket))
+            """, (id_modo_pago, id_ventas, cantidad_pagada, id_ticket))
             self.conexion.commit()
+            # Actualiza el cambio automáticamente después de actualizar el ticket
+            self.actualizar_cambio(id_ticket)
             return True
+        except Exception as e:
+            self.conexion.rollback()
+            raise e
+
+    def actualizar_cambio(self, id_ticket):
+        """
+        Actualiza el campo 'cambio' en el ticket como cantidad_pagada - (total * 1.16) de la venta relacionada.
+        """
+        try:
+            self.cursor.execute("""
+                SELECT t.cantidad_pagada, v.total
+                FROM ticket t
+                JOIN ventas v ON t.id_ventas = v.id_ventas
+                WHERE t.id_ticket = %s
+            """, (id_ticket,))
+            datos = self.cursor.fetchone()
+            if datos and datos['cantidad_pagada'] is not None and datos['total'] is not None:
+                total_con_iva = float(datos['total']) * 1.16
+                cambio = float(datos['cantidad_pagada']) - total_con_iva
+            else:
+                cambio = None
+            self.cursor.execute("""
+                UPDATE ticket SET cambio = %s WHERE id_ticket = %s
+            """, (cambio, id_ticket))
+            self.conexion.commit()
         except Exception as e:
             self.conexion.rollback()
             raise e
@@ -93,7 +124,9 @@ class TicketModel:
                     a.codigo_articulo,
                     a.nombre_articulo,
                     dv.cantidad,
-                    dv.subtotal
+                    dv.subtotal,
+                    t.cantidad_pagada,
+                    t.cambio
                 FROM ticket t
                 JOIN modo_pago m ON t.id_modo_pago = m.id_modo_pago
                 JOIN ventas v ON t.id_ventas = v.id_ventas

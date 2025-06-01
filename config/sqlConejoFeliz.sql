@@ -174,6 +174,7 @@ DEFAULT CHARACTER SET = utf8mb3;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb_conejo_feliz`.`ventas` (
   `id_ventas` INT NOT NULL AUTO_INCREMENT,
+  `total` DECIMAL(10,2) NULL,
   `id_usuario` INT NOT NULL,
   `id_cliente` INT NOT NULL,
   `fecha_venta` VARCHAR(10) NOT NULL,
@@ -237,6 +238,8 @@ CREATE TABLE IF NOT EXISTS `mydb_conejo_feliz`.`ticket` (
   `id_ticket` VARCHAR(20) NOT NULL,
   `id_modo_pago` INT NOT NULL,
   `id_ventas` INT NOT NULL,
+  `cantidad_pagada` DECIMAL(10,2) NULL,
+  `cambio` DECIMAL(10,2) NULL,
   PRIMARY KEY (`id_ticket`),
   INDEX `fk_ticket_modo_pago1_idx` (`id_modo_pago` ASC) VISIBLE,
   INDEX `fk_ticket_ventas1_idx` (`id_ventas` ASC) VISIBLE,

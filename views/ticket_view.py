@@ -48,9 +48,9 @@ class TicketView(QWidget):
 
         # Tabla
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(6)
+        self.tabla.setColumnCount(8)
         self.tabla.setHorizontalHeaderLabels([
-            "ID Ticket", "Modo de Pago", "ID Venta", "Fecha Venta", "Usuario", "Cliente"
+            "ID Ticket", "Modo de Pago", "ID Venta", "Fecha Venta", "Usuario", "Cliente", "Pagado", "Cambio"
         ])
         self.tabla.cellClicked.connect(self.seleccionar_fila)
         layout.addWidget(self.tabla)
@@ -60,6 +60,27 @@ class TicketView(QWidget):
         self.input_id = QLineEdit()
         self.combo_pago = QComboBox()
         self.combo_ventas = QComboBox()
+        self.input_cantidad_pagada = QLineEdit()
+        self.input_cantidad_pagada.setPlaceholderText("Cantidad Pagada")
+        self.input_cantidad_pagada.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #32CD32;
+                border-radius: 10px;
+                padding: 5px;
+                background-color: #FFFFFF;
+            }
+        """)
+        self.input_cambio = QLineEdit()
+        self.input_cambio.setPlaceholderText("Cambio")
+        self.input_cambio.setReadOnly(True)
+        self.input_cambio.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #1E90FF;
+                border-radius: 10px;
+                padding: 5px;
+                background-color: #F0F8FF;
+            }
+        """)
 
         self.input_id.setPlaceholderText("ID Ticket")
         self.input_id.setStyleSheet("""
@@ -90,6 +111,8 @@ class TicketView(QWidget):
         form_layout.addWidget(self.input_id)
         form_layout.addWidget(self.combo_pago)
         form_layout.addWidget(self.combo_ventas)
+        form_layout.addWidget(self.input_cantidad_pagada)
+        form_layout.addWidget(self.input_cambio)
         layout.addLayout(form_layout)
 
         # Botones
@@ -186,20 +209,24 @@ class TicketView(QWidget):
             self.tabla.setItem(i, 3, QTableWidgetItem(str(ticket["fecha_venta"])))
             self.tabla.setItem(i, 4, QTableWidgetItem(ticket["nombre_usuario"]))
             self.tabla.setItem(i, 5, QTableWidgetItem(ticket["nombre_cliente"]))
+            self.tabla.setItem(i, 6, QTableWidgetItem(str(ticket.get("cantidad_pagada", ""))))
+            self.tabla.setItem(i, 7, QTableWidgetItem(str(ticket.get("cambio", ""))))
 
     def seleccionar_fila(self, fila, _):
         self.input_id.setText(self.tabla.item(fila, 0).text())
-
         tipo_pago = self.tabla.item(fila, 1).text()
         index_pago = self.combo_pago.findText(tipo_pago)
         if index_pago != -1:
             self.combo_pago.setCurrentIndex(index_pago)
-
         id_venta = self.tabla.item(fila, 2).text()
         for i in range(self.combo_ventas.count()):
             if str(self.combo_ventas.itemData(i)) == id_venta:
                 self.combo_ventas.setCurrentIndex(i)
                 break
+        # Si tienes columnas para cantidad_pagada y cambio:
+        if self.tabla.columnCount() > 6:
+            self.input_cantidad_pagada.setText(self.tabla.item(fila, 6).text())
+            self.input_cambio.setText(self.tabla.item(fila, 7).text())
 
     def limpiar_campos(self):
         self.input_id.clear()
@@ -215,12 +242,11 @@ class TicketView(QWidget):
     def agregar_ticket(self):
         if not self.validar_campos():
             return
-        
         id_ticket = self.input_id.text()
         id_modo_pago = self.combo_pago.currentData()
         id_ventas = self.combo_ventas.currentData()
-
-        if self.controller.crear_ticket(id_ticket, id_modo_pago, id_ventas):
+        cantidad_pagada = self.input_cantidad_pagada.text()
+        if self.controller.crear_ticket(id_ticket, id_modo_pago, id_ventas, cantidad_pagada):
             QMessageBox.information(self, "Éxito", "Ticket agregado correctamente")
             self.cargar_datos()
             self.limpiar_campos()
@@ -228,12 +254,11 @@ class TicketView(QWidget):
     def actualizar_ticket(self):
         if not self.validar_campos():
             return
-        
         id_ticket = self.input_id.text()
         id_modo_pago = self.combo_pago.currentData()
         id_ventas = self.combo_ventas.currentData()
-
-        if self.controller.actualizar_ticket(id_ticket, id_modo_pago, id_ventas):
+        cantidad_pagada = self.input_cantidad_pagada.text()
+        if self.controller.actualizar_ticket(id_ticket, id_modo_pago, id_ventas, cantidad_pagada):
             QMessageBox.information(self, "Éxito", "Ticket actualizado correctamente")
             self.cargar_datos()
             self.limpiar_campos()
@@ -341,7 +366,8 @@ class TicketView(QWidget):
             except Exception as e:
                 print(f"Error al cargar el logo: {e}")
 
-            draw_line("Av 3a. Sur Pte 548, Centro, 29000 Tuxtla Gutiérrez, Chis.".center(40))
+            draw_line("Av 3a. Sur Pte 548, Centro, 29000".center(40))
+            draw_line(" Tuxtla Gutiérrez, Chis.".center(40))
             draw_line("-" * 40)
             draw_line(f"Ticket: {est['id_ticket']}    Venta: {est['id_ventas']}")
             draw_line(f"Fecha: {str(est['fecha_venta'])}")
@@ -373,18 +399,25 @@ class TicketView(QWidget):
                 subtotal = f"${importe:.2f}".rjust(9)
 
                 draw_line(f"{cod}{descripcion}{cantidad}{precio}{subtotal}")
-                total += importe
+                total += importe  ###El total se calcula aquí
                 total_articulos += cantidad_val
 
             # Totales
-            iva = round(total * 0.16, 2)
-            total_con_iva = round(total + iva, 2)
+            iva = round(total * 0.16, 2)  # IVA del 16%
+            total_con_iva = round(total + iva, 2) 
 
             draw_line("-" * 40)
             draw_line(f"Total Artículos: {total_articulos:.2f}".rjust(40))
             draw_line(f"{'Subtotal:':>28} ${total:.2f}")
             draw_line(f"{'IVA 16%:':>28}  ${iva:.2f}")
             draw_line(f"{'TOTAL:':>28}    ${total_con_iva:.2f}")
+
+            # Mostrar pagado y cambio
+            pagado = est.get('cantidad_pagada', 0)
+            cambio = est.get('cambio', 0)
+            draw_line(f"{'Pagado:':>28}    ${float(pagado):.2f}")
+            draw_line(f"{'Cambio:':>28}    ${float(cambio):.2f}")
+
             draw_line("=" * 40)
             draw_line("¡Gracias por su compra!".center(40))
             draw_line("Vuelva pronto :)".center(40))

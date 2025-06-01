@@ -26,16 +26,16 @@ class TicketController:
             QMessageBox.critical(None, "Error", f"No se pudieron cargar las ventas: {e}")
             return []
 
-    def crear_ticket(self, id_ticket, id_modo_pago, id_ventas):
+    def crear_ticket(self, id_ticket, id_modo_pago, id_ventas, cantidad_pagada):
         try:
-            return self.model.crear_ticket(id_ticket, id_modo_pago, id_ventas)
+            return self.model.crear_ticket(id_ticket, id_modo_pago, id_ventas, cantidad_pagada)
         except Exception as e:
             QMessageBox.critical(None, "Error", f"No se pudo crear el ticket: {e}")
             return False
 
-    def actualizar_ticket(self, id_ticket, id_modo_pago, id_ventas):
+    def actualizar_ticket(self, id_ticket, id_modo_pago, id_ventas, cantidad_pagada):
         try:
-            return self.model.actualizar_ticket(id_ticket, id_modo_pago, id_ventas)
+            return self.model.actualizar_ticket(id_ticket, id_modo_pago, id_ventas, cantidad_pagada)
         except Exception as e:
             QMessageBox.critical(None, "Error", f"No se pudo actualizar el ticket: {e}")
             return False
